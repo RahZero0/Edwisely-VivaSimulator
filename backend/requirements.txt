@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+pypdf
+groq
+llama-index
+llama-index-llms-groq
+llama-index-llms-openai
+llama-index-embeddings-openai
+llama-index-llms-ollama
+llama-index-embeddings-ollama
