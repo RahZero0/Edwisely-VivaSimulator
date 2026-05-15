@@ -12,6 +12,7 @@ export default function PeerViva({ sources, selectedSourceIds, selectedSourceNam
   const [rounds, setRounds] = useState(2);
   const [students, setStudents] = useState(initialStudents);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [answerMode, setAnswerMode] = useState("text");
   const [cameraCoaching, setCameraCoaching] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
@@ -238,7 +239,21 @@ export default function PeerViva({ sources, selectedSourceIds, selectedSourceNam
         {currentStudent.name}'s answer
         <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="Type the answer here..." />
       </label>
-      {voiceEnabled && (
+
+      <div className="answerModes">
+        <button className={answerMode === "text" ? "" : "secondaryButton"} onClick={() => setAnswerMode("text")}>
+          Text Answer
+        </button>
+        <button
+          className={answerMode === "voice" ? "" : "secondaryButton"}
+          disabled={!voiceEnabled}
+          onClick={() => setAnswerMode("voice")}
+        >
+          Voice Answer
+        </button>
+      </div>
+
+      {voiceEnabled && answerMode === "voice" && (
         <div className="voiceControls">
           <button disabled={isRecording} onClick={startRecording}>Start Recording</button>
           <button className="secondaryButton" disabled={!isRecording} onClick={stopRecording}>Stop Recording</button>
