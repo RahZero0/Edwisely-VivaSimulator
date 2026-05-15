@@ -8,9 +8,11 @@ Adaptive AI viva simulator for engineering students. Upload subject PDFs, genera
 - Select one or more indexed PDFs for question generation.
 - Developer Mode: generate and inspect all viva questions, expected answers, and follow-ups.
 - Student Mode: run an examiner-like viva one question at a time without revealing expected answers before submission.
+- Peer Mode: two students alternate turns while the AI acts as moderator.
 - Submit a typed answer and receive score, feedback, missing points, and a targeted follow-up.
 - Use browser text-to-speech to read questions aloud.
 - Record voice answers in the browser and send audio to the backend transcription endpoint.
+- Optional local Camera Coaching gives neutral communication feedback during Student Mode.
 
 ## Backend Setup
 
@@ -103,6 +105,36 @@ Known v0 limitations:
 - Student sessions are in memory only and reset when the backend restarts.
 - Browser text-to-speech depends on `window.speechSynthesis` support.
 - Browser voice recording depends on microphone permission and `MediaRecorder` support.
+
+## Camera Coaching
+
+Camera Coaching is optional and runs in the browser. Raw webcam frames are not uploaded to the backend and no webcam recordings are saved. The current v1 implementation uses a lightweight local analyzer abstraction with approximate metrics and is intended for communication coaching only.
+
+It reports:
+
+- Face visibility percentage
+- Approximate camera attention percentage
+- Posture score
+- Movement stability score
+- Neutral, actionable tips
+
+Known limitations:
+
+- Eye contact is only an approximation based on camera-facing behavior.
+- Posture scoring is approximate and depends on lighting and camera angle.
+- This feature must not be used for high-stakes proctoring or cheating detection.
+
+## Peer Mode
+
+Peer Mode lets two students take turns answering questions. The AI moderator announces the current student, asks a student-safe question, evaluates the answer, and allows optional peer feedback from the other student.
+
+Peer Mode keeps expected answers hidden until after the current student submits. Session state is stored in frontend memory for v1.
+
+Known limitations:
+
+- Peer Mode is for practice, not formal grading.
+- Peer feedback is stored in the session summary but does not override AI evaluation.
+- Camera coaching in Peer Mode is currently a setup toggle; full per-student camera metrics can be added later using the existing analyzer abstraction.
 
 ## Voice Transcription
 

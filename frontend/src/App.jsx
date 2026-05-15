@@ -13,6 +13,7 @@ import {
   uploadPdfThunk,
 } from "./store.js";
 import StudentViva from "./StudentViva.jsx";
+import PeerViva from "./components/peer/PeerViva.jsx";
 
 export default function App() {
   const dispatch = useDispatch();
@@ -114,6 +115,9 @@ export default function App() {
           <button className={mode === "student" ? "" : "secondaryButton"} onClick={() => setMode("student")}>
             Student Mode
           </button>
+          <button className={mode === "peer" ? "" : "secondaryButton"} onClick={() => setMode("peer")}>
+            Peer Mode
+          </button>
         </div>
       </header>
 
@@ -129,6 +133,14 @@ export default function App() {
           onTopicChange={(value) => dispatch(setTopic(value))}
           onDifficultyChange={(value) => dispatch(setDifficulty(value))}
           onCountChange={(value) => dispatch(setCount(value))}
+          onToggleSource={(sourceId) => dispatch(toggleSource(sourceId))}
+        />
+      ) : mode === "peer" ? (
+        <PeerViva
+          sources={sources}
+          selectedSourceIds={selectedSourceIds}
+          selectedSourceNames={selectedSourceNames}
+          canGenerate={canGenerate}
           onToggleSource={(sourceId) => dispatch(toggleSource(sourceId))}
         />
       ) : (
@@ -529,6 +541,84 @@ const styles = `
   .historyItem {
     border-top: 1px solid #e2e8f0;
     padding: 14px 0;
+  }
+
+  .cameraPanel,
+  .communicationBox,
+  .peerFeedbackBox {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin: 14px 0;
+    padding: 14px;
+  }
+
+  .cameraHeader {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+  }
+
+  .inlineToggle {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .inlineToggle input {
+    width: auto;
+  }
+
+  .privacyNote {
+    color: #64748b;
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+  }
+
+  .cameraPreview {
+    aspect-ratio: 4 / 3;
+    background: #111827;
+    border-radius: 8px;
+    max-width: 220px;
+    width: 100%;
+  }
+
+  .coachBadges,
+  .peerScoreboard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .goodBadge,
+  .warnBadge {
+    border-radius: 999px;
+    font-size: 0.86rem;
+    font-weight: 800;
+    padding: 0.25rem 0.55rem;
+  }
+
+  .goodBadge {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .warnBadge {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .activePeer {
+    border-color: #176b87;
+    box-shadow: 0 0 0 2px #d8edf2;
+  }
+
+  .peerFeedbackBox {
+    display: grid;
+    gap: 10px;
   }
 
   .sectionTitle,
