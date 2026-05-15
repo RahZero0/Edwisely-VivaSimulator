@@ -263,6 +263,38 @@ def is_usable_context(text: str) -> bool:
     return True
 
 
+def fallback_pdf_context(topic: str, sources: list[dict[str, Any]]) -> list[str]:
+    topic_terms = [term.lower() for term in re.findall(r"[a-zA-Z]{4,}", topic)]
+    context_parts: list[str] = []
+
+    for source in sources:
+        upload_path = source.get("upload_path")
+        if not upload_path or not Path(upload_path).exists():
+            continue
+
+        try:
+            documents = SimpleDirectoryReader(input_files=[upload_path]).load_data()
+        except Exception as exc:
+            logger.warning("Fallback PDF read failed for %s: %s", source.get("filename"), exc)
+            continue
+
+        candidates: list[tuple[int, str]] = []
+        for document in documents:
+            text = clean_retrieved_text(document.get_content())
+            if not is_usable_context(text):
+                continue
+            score = sum(text.lower().count(term) for term in topic_terms)
+            candidates.append((score, text))
+
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        for _, text in candidates[:2]:
+            context_parts.append(f"Source: {source['filename']}\n{text[:2500]}")
+            if len(context_parts) >= MAX_CONTEXT_CHUNKS:
+                return context_parts
+
+    return context_parts
+
+
 def retrieve_context(topic: str, sources: list[dict[str, Any]], top_k: int = 2) -> str:
     scored_parts: list[tuple[float, str]] = []
     dropped_chunks = 0
@@ -286,16 +318,19 @@ def retrieve_context(topic: str, sources: list[dict[str, Any]], top_k: int = 2) 
             scored_parts.append((score, f"Source: {source['filename']}\n{text}"))
 
     if not scored_parts:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Retrieval returned no readable text from the selected PDF source(s). "
-                "Try selecting fewer sources, using a text-based PDF, or re-uploading the PDF."
-            ),
-        )
-
-    scored_parts.sort(key=lambda item: item[0], reverse=True)
-    context_parts = [part for _, part in scored_parts[:MAX_CONTEXT_CHUNKS]]
+        logger.info("Vector retrieval returned no readable context. Trying direct PDF fallback.")
+        context_parts = fallback_pdf_context(topic, sources)
+        if not context_parts:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Retrieval returned no readable text from the selected PDF source(s). "
+                    "Try selecting fewer sources, using a text-based PDF, or re-uploading the PDF."
+                ),
+            )
+    else:
+        scored_parts.sort(key=lambda item: item[0], reverse=True)
+        context_parts = [part for _, part in scored_parts[:MAX_CONTEXT_CHUNKS]]
     if dropped_chunks:
         logger.info("Dropped %s unreadable retrieved context chunk(s).", dropped_chunks)
 

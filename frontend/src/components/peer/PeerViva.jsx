@@ -260,6 +260,14 @@ export default function PeerViva({ sources, selectedSourceIds, selectedSourceNam
         </div>
       )}
 
+      {!currentEvaluation && (
+        <div className="studentActions">
+          <button disabled={isLoading || !currentQuestion} onClick={submitTurnAnswer}>
+            {isLoading ? "Evaluating..." : "Submit Answer"}
+          </button>
+        </div>
+      )}
+
       <div className="peerFeedbackBox">
         <h3>{otherStudent.name}'s optional peer feedback</h3>
         <label>What was good?<input value={peerFeedback.good} onChange={(event) => setPeerFeedback({ ...peerFeedback, good: event.target.value })} /></label>
@@ -267,9 +275,7 @@ export default function PeerViva({ sources, selectedSourceIds, selectedSourceNam
         <label>One suggested improvement<input value={peerFeedback.improvement} onChange={(event) => setPeerFeedback({ ...peerFeedback, improvement: event.target.value })} /></label>
       </div>
 
-      {!currentEvaluation ? (
-        <button disabled={isLoading} onClick={submitTurnAnswer}>{isLoading ? "Evaluating..." : "Evaluate Turn"}</button>
-      ) : (
+      {currentEvaluation && (
         <div className="evaluation">
           <div className="score">{currentEvaluation.score}/5</div>
           <p>{currentEvaluation.feedback}</p>
