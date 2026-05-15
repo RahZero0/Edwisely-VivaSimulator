@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { evaluateAnswer, evaluateStudentAnswer, generateStudentQuestions, transcribeAudio } from "./api.js";
+import CameraCoachingPanel from "./components/student/CameraCoachingPanel.jsx";
+import CommunicationFeedback from "./components/student/CommunicationFeedback.jsx";
+import { getBodyLanguageSummary } from "./lib/bodyLanguageAnalyzer.js";
 
 export default function StudentViva({
   topic,
@@ -31,6 +34,7 @@ export default function StudentViva({
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState("");
   const [followupActive, setFollowupActive] = useState(false);
+  const [cameraCoachingEnabled, setCameraCoachingEnabled] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
@@ -195,6 +199,7 @@ export default function StudentViva({
         question: displayedQuestion,
         answer: answer.trim(),
         evaluation,
+        communication: cameraCoachingEnabled ? getBodyLanguageSummary() : null,
         isFollowup: followupActive,
       };
       setCurrentEvaluation(evaluation);
@@ -243,6 +248,9 @@ export default function StudentViva({
         <div className="summaryGrid">
           <SummaryCard label="Questions answered" value={summary.totalAnswered} />
           <SummaryCard label="Average score" value={`${summary.averageScore}/5`} />
+          <SummaryCard label="Communication score" value={`${summary.communicationScore}/5`} />
+          <SummaryCard label="Camera attention" value={`${summary.cameraAttentionPercent}%`} />
+          <SummaryCard label="Face visibility" value={`${summary.faceVisiblePercent}%`} />
           <SummaryCard label="Strong areas" value={summary.strongAreas.join(", ") || "Developing"} />
           <SummaryCard label="Weakness areas" value={summary.weakAreas.join(", ") || "None flagged"} />
           <SummaryCard label="Revision topics" value={summary.revisionTopics.join(", ") || topic || "Review source PDF"} />
@@ -255,6 +263,7 @@ export default function StudentViva({
               <p>{item.question}</p>
               <p><b>Answer:</b> {item.answer}</p>
               <p><b>Score:</b> {item.evaluation.score}/5</p>
+              {item.communication && <p><b>Communication:</b> {item.communication.communicationScore}/5</p>}
               <p>{item.evaluation.feedback}</p>
             </article>
           ))}
@@ -276,6 +285,7 @@ export default function StudentViva({
             {isMuted ? "Unmute" : "Mute"}
           </button>
         </div>
+        <CameraCoachingPanel enabled={cameraCoachingEnabled} onEnabledChange={setCameraCoachingEnabled} />
         <div className="startPanel">
           <div className="setupGrid">
             <label>
@@ -352,6 +362,7 @@ export default function StudentViva({
           </button>
           <button className="secondaryButton" onClick={stopSpeaking}>Stop Audio</button>
         </div>
+        <CameraCoachingPanel enabled={cameraCoachingEnabled} onEnabledChange={setCameraCoachingEnabled} />
       </div>
 
       <article className="questionStage">
@@ -386,7 +397,7 @@ export default function StudentViva({
           {isEvaluating ? "Evaluating..." : "Submit Answer"}
         </button>
       ) : (
-        <EvaluationResult evaluation={currentEvaluation} />
+        <EvaluationResult evaluation={currentEvaluation} communication={history.at(-1)?.communication} />
       )}
 
       {currentEvaluation && (
@@ -406,7 +417,7 @@ export default function StudentViva({
   );
 }
 
-function EvaluationResult({ evaluation }) {
+function EvaluationResult({ evaluation, communication }) {
   return (
     <div className="evaluation">
       <div className="score">{evaluation.score}/5</div>
@@ -426,6 +437,7 @@ function EvaluationResult({ evaluation }) {
       )}
       <h3>Follow-up question</h3>
       <p>{evaluation.followup_question || "No follow-up returned."}</p>
+      <CommunicationFeedback communication={communication} />
     </div>
   );
 }
@@ -448,6 +460,7 @@ function buildSummary(history) {
   const weak = new Set();
   const strong = new Set();
   const revision = new Set();
+  const communicationItems = mainAnswers.map((item) => item.communication).filter(Boolean);
 
   mainAnswers.forEach((item) => {
     if (Number(item.evaluation.score) >= 4) {
@@ -462,8 +475,17 @@ function buildSummary(history) {
   return {
     totalAnswered: mainAnswers.length,
     averageScore: average,
+    communicationScore: averageMetric(communicationItems, "communicationScore"),
+    cameraAttentionPercent: averageMetric(communicationItems, "cameraAttentionPercent", 0),
+    faceVisiblePercent: averageMetric(communicationItems, "faceVisiblePercent", 0),
     weakAreas: [...weak].slice(0, 4),
     strongAreas: [...strong].slice(0, 4),
     revisionTopics: [...revision].slice(0, 5),
   };
+}
+
+function averageMetric(items, key, decimals = 1) {
+  if (!items.length) return decimals === 0 ? 0 : "0.0";
+  const value = items.reduce((total, item) => total + Number(item[key] || 0), 0) / items.length;
+  return decimals === 0 ? Math.round(value) : value.toFixed(decimals);
 }
